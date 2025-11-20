@@ -1,8 +1,8 @@
 using UnrealBuildTool;
 
-public class NG_InteractionSystem : ModuleRules
+public class NGInteractionSystem : ModuleRules
 {
-	public NG_InteractionSystem(ReadOnlyTargetRules Target) : base(Target)
+	public NGInteractionSystem(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
