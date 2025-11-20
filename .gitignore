@@ -1,0 +1,9 @@
+Binaries/
+Intermediate/
+Saved/
+*.sln
+*.vcxproj
+*.opensdf
+*.sdf
+*.suo
+*.user
