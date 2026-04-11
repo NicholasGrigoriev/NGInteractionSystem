@@ -46,6 +46,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	float InteractAngleThreshold = 15.0f;
 
+	/** How often (in seconds) to update the current interactable. 0 = every frame. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	float UpdateInterval = 0.0f;
+
 	UFUNCTION()
 	void OnInteractionBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -57,4 +61,5 @@ protected:
 
 private:
 	TArray<AActor*> OverlappingInteractables;
+	float TimeSinceLastUpdate = 0.0f;
 };

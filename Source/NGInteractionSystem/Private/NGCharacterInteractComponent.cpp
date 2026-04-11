@@ -37,6 +37,16 @@ void UNGCharacterInteractComponent::TickComponent(float DeltaTime, ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (UpdateInterval > 0.0f)
+	{
+		TimeSinceLastUpdate += DeltaTime;
+		if (TimeSinceLastUpdate < UpdateInterval)
+		{
+			return;
+		}
+		TimeSinceLastUpdate = 0.0f;
+	}
+
 	UpdateCurrentInteractable();
 }
 
