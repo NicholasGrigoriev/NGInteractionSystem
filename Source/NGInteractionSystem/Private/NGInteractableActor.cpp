@@ -5,27 +5,12 @@
 // Sets default values
 ANGInteractableActor::ANGInteractableActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	InteractMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("InteractMesh"));
 	RootComponent = InteractMesh;
 
 	bIsInteractable = true;
-}
-
-// Called when the game starts or when spawned
-void ANGInteractableActor::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void ANGInteractableActor::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void ANGInteractableActor::Interact_Implementation(AActor* InteractingActor)

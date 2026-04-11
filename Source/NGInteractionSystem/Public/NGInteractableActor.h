@@ -13,17 +13,8 @@ class NGINTERACTIONSYSTEM_API ANGInteractableActor : public AActor, public INGIn
 {
 	GENERATED_BODY()
 	
-public:	
-	// Sets default values for this actor's properties
+public:
 	ANGInteractableActor();
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
 	// INGInteractionInterface Implementation
 	virtual void Interact_Implementation(AActor* InteractingActor) override;
