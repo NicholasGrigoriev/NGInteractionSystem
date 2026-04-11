@@ -50,6 +50,19 @@ A lightweight, reusable interaction plugin for Unreal Engine 5. Drop it into any
 1. Add `INGInteractionInterface` to any Actor
 2. Implement: `Interact`, `IsReadyToInteract`, `ReadyToInteract`, `SelectedToInteract`, `NotReadyToInteract`
 
+## Visual Feedback with Overlay Materials
+
+The base class `ANGInteractableActor` uses Unreal's overlay material system to give players clear visual cues about what they can interact with. Overlay materials render on top of the object's base material without replacing it — the original appearance stays intact.
+
+The system uses two material slots:
+
+- **`InteractReadyMaterial`** — applied when the player is nearby and looking at the object. Typically a subtle highlight (e.g. a faint outline or glow) signaling "this is interactable."
+- **`InteractSelectedMaterial`** — applied when the object becomes the active selection. Typically a stronger, colored overlay (e.g. green) telling the player "press the button to interact with this."
+
+When the player looks away or moves out of range, the overlay is cleared and the object returns to its normal appearance.
+
+To set this up, create two simple overlay materials (translucent or additive blending works best) and assign them in the Details panel of your `ANGInteractableActor` Blueprint. No material swapping, no dynamic material instances — just a clean overlay on top.
+
 ## Core Classes
 
 | Class | Role |
