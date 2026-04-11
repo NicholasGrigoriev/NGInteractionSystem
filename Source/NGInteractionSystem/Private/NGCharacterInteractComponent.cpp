@@ -42,7 +42,7 @@ void UNGCharacterInteractComponent::TickComponent(float DeltaTime, ELevelTick Ti
 
 bool UNGCharacterInteractComponent::TryInteract_Implementation()
 {
-	if (CurrentInteractable)
+	if (CurrentInteractable && INGInteractionInterface::Execute_IsReadyToInteract(CurrentInteractable.GetObject()))
 	{
 		INGInteractionInterface::Execute_Interact(CurrentInteractable.GetObject(), GetOwner());
 		return true;

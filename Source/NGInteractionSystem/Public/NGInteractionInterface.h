@@ -23,6 +23,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
 	void Interact(AActor* InteractingActor);
 
+	/** Returns true if the actor is currently available for interaction. */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
+	bool IsReadyToInteract();
+
 	/** Called when the actor is looked at/ready to be interacted with. */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
 	void ReadyToInteract();

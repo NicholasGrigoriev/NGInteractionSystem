@@ -31,9 +31,14 @@ void ANGInteractableActor::Tick(float DeltaTime)
 void ANGInteractableActor::Interact_Implementation(AActor* InteractingActor)
 {
 	if (!bIsInteractable) return;
-	
+
 	// Base implementation can be empty or log something
 	UE_LOG(LogTemp, Log, TEXT("Interacted with %s"), *GetName());
+}
+
+bool ANGInteractableActor::IsReadyToInteract_Implementation()
+{
+	return bIsInteractable;
 }
 
 void ANGInteractableActor::ReadyToInteract_Implementation()

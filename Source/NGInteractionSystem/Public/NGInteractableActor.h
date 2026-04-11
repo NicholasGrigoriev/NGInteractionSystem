@@ -27,6 +27,7 @@ public:
 
 	// INGInteractionInterface Implementation
 	virtual void Interact_Implementation(AActor* InteractingActor) override;
+	virtual bool IsReadyToInteract_Implementation() override;
 	virtual void ReadyToInteract_Implementation() override;
 	virtual void SelectedToInteract_Implementation() override;
 	virtual void NotReadyToInteract_Implementation() override;
