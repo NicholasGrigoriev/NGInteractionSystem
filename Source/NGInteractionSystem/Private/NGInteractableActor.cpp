@@ -24,6 +24,15 @@ void ANGInteractableActor::Interact_Implementation(AActor* InteractingActor)
 
 bool ANGInteractableActor::IsReadyToInteract_Implementation()
 {
+	// Side-effect: apply the "ready" overlay material when the proximity system
+	// notifies us we're the current candidate. SelectedToInteract is called
+	// right after by the component and will overwrite this with the stronger
+	// "selected" material, so InteractReadyMaterial is mostly useful for
+	// subclasses that override SelectedToInteract to do something else.
+	if (InteractMesh && InteractReadyMaterial)
+	{
+		InteractMesh->SetOverlayMaterial(InteractReadyMaterial);
+	}
 	return bIsInteractable;
 }
 

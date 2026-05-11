@@ -118,10 +118,16 @@ void UNGCharacterInteractComponent::UpdateCurrentInteractable()
 
 		CurrentInteractable = BestActor;
 
-		// Notify new interactable
+		// Notify new interactable. IsReadyToInteract is the "you're now the
+		// candidate" event (applies the ready material in the base class);
+		// SelectedToInteract is fired right after as the "you're the best
+		// match" event (applies the selected material, overwriting ready).
+		// Subclasses can override either independently if they want distinct
+		// behavior for the two states.
 		if (CurrentInteractable)
 		{
 			INGInteractionInterface::Execute_IsReadyToInteract(CurrentInteractable.GetObject());
+			INGInteractionInterface::Execute_SelectedToInteract(CurrentInteractable.GetObject());
 		}
 	}
 }
