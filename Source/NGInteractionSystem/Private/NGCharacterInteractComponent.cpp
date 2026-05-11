@@ -1,21 +1,13 @@
 #include "NGCharacterInteractComponent.h"
-#include "Components/BoxComponent.h"
+#include "Components/ShapeComponent.h"
 #include "Camera/CameraComponent.h"
 #include "NGInteractionInterface.h"
 #include "GameFramework/Actor.h"
-#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values for this component's properties
 UNGCharacterInteractComponent::UNGCharacterInteractComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	InteractionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractionBox"));
-	InteractionBox->SetupAttachment(this);
-	InteractionBox->SetBoxExtent(FVector(100.f, 50.f, 50.f));
-	InteractionBox->SetCollisionProfileName(TEXT("Trigger"));
 }
 
 
@@ -23,13 +15,17 @@ UNGCharacterInteractComponent::UNGCharacterInteractComponent()
 void UNGCharacterInteractComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	UShapeComponent* InteractionShapeComp = GetInteractionShape();
 
-	if (InteractionBox)
+
+	if (InteractionShapeComp)
 	{
-		InteractionBox->OnComponentBeginOverlap.AddDynamic(this, &UNGCharacterInteractComponent::OnInteractionBoxBeginOverlap);
-		InteractionBox->OnComponentEndOverlap.AddDynamic(this, &UNGCharacterInteractComponent::OnInteractionBoxEndOverlap);
+		InteractionShapeComp->OnComponentBeginOverlap.AddUniqueDynamic(this, &UNGCharacterInteractComponent::OnInteractionShapeBeginOverlap);
+		InteractionShapeComp->OnComponentEndOverlap.AddUniqueDynamic(this, &UNGCharacterInteractComponent::OnInteractionShapeEndOverlap);
 	}
 }
+
+
 
 
 // Called every frame
@@ -65,12 +61,27 @@ UObject* UNGCharacterInteractComponent::GetCurrentInteractable_Implementation()
 	return CurrentInteractable.GetObject();
 }
 
-void UNGCharacterInteractComponent::SetInteractCamera(UCameraComponent* NewCamera)
+
+UShapeComponent* UNGCharacterInteractComponent::GetInteractionShape() const
 {
-	InteractCamera = NewCamera;
+	if (AActor* Owner = GetOwner())
+	{
+		return Cast<UShapeComponent>(InteractionShapeRef.GetComponent(Owner));
+	}
+	return nullptr;
 }
 
-void UNGCharacterInteractComponent::OnInteractionBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+UCameraComponent* UNGCharacterInteractComponent::GetInteractionCamera() const
+{
+	if (AActor* Owner = GetOwner())
+	{
+		return Cast<UCameraComponent>(InteractionCameraRef.GetComponent(Owner));
+	}
+	return nullptr;
+}
+
+
+void UNGCharacterInteractComponent::OnInteractionShapeBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor && OtherActor != GetOwner() && OtherActor->Implements<UNGInteractionInterface>())
 	{
@@ -78,7 +89,7 @@ void UNGCharacterInteractComponent::OnInteractionBoxBeginOverlap(UPrimitiveCompo
 	}
 }
 
-void UNGCharacterInteractComponent::OnInteractionBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void UNGCharacterInteractComponent::OnInteractionShapeEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (OtherActor)
 	{
@@ -110,9 +121,7 @@ void UNGCharacterInteractComponent::UpdateCurrentInteractable()
 		// Notify new interactable
 		if (CurrentInteractable)
 		{
-			INGInteractionInterface::Execute_ReadyToInteract(CurrentInteractable.GetObject());
-			// Also call SelectedToInteract as it is the currently selected one
-			INGInteractionInterface::Execute_SelectedToInteract(CurrentInteractable.GetObject());
+			INGInteractionInterface::Execute_IsReadyToInteract(CurrentInteractable.GetObject());
 		}
 	}
 }
@@ -129,6 +138,7 @@ AActor* UNGCharacterInteractComponent::GetBestInteractableActor()
 
 	FVector CameraLocation;
 	FVector CameraForward;
+	const UCameraComponent* InteractCamera = GetInteractionCamera();
 
 	if (InteractCamera)
 	{

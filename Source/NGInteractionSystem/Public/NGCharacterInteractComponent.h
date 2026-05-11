@@ -5,12 +5,13 @@
 #include "NGCharacterInteractInterface.h"
 #include "NGCharacterInteractComponent.generated.h"
 
-class UBoxComponent;
+class UShapeComponent;
 class UCameraComponent;
 class INGInteractionInterface;
+class UBoxComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class NGINTERACTIONSYSTEM_API UNGCharacterInteractComponent : public USceneComponent, public INGCharacterInteractInterface
+class NGINTERACTIONSYSTEM_API UNGCharacterInteractComponent : public UActorComponent, public INGCharacterInteractInterface
 {
 	GENERATED_BODY()
 
@@ -30,15 +31,19 @@ public:
 	virtual bool TryInteract_Implementation() override;
 	virtual UObject* GetCurrentInteractable_Implementation() override;
 
-	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void SetInteractCamera(UCameraComponent* NewCamera);
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
-	TObjectPtr<UBoxComponent> InteractionBox;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction",
+			meta = (AllowedClasses = "/Script/Engine.ShapeComponent,/Script/Engine.BoxComponent,/Script/Engine.CapsuleComponent", ExactClass = false))
+	FComponentReference InteractionShapeRef;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction",
+			meta = (AllowedClasses = "/Script/Engine.CameraComponent", ExactClass = false ))
+	FComponentReference InteractionCameraRef;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
-	TObjectPtr<UCameraComponent> InteractCamera;
+	UShapeComponent* GetInteractionShape() const;
+	UCameraComponent* GetInteractionCamera() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TScriptInterface<INGInteractionInterface> CurrentInteractable;
@@ -51,10 +56,10 @@ protected:
 	float UpdateInterval = 0.0f;
 
 	UFUNCTION()
-	void OnInteractionBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnInteractionShapeBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnInteractionBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnInteractionShapeEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	void UpdateCurrentInteractable();
 	AActor* GetBestInteractableActor();

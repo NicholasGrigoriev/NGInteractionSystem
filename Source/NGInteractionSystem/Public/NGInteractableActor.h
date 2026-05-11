@@ -16,12 +16,12 @@ class NGINTERACTIONSYSTEM_API ANGInteractableActor : public AActor, public INGIn
 public:
 	ANGInteractableActor();
 
-	// INGInteractionInterface Implementation
+	// INGInteractionInterface Implementation Start
 	virtual void Interact_Implementation(AActor* InteractingActor) override;
 	virtual bool IsReadyToInteract_Implementation() override;
-	virtual void ReadyToInteract_Implementation() override;
 	virtual void SelectedToInteract_Implementation() override;
 	virtual void NotReadyToInteract_Implementation() override;
+	// INGInteractionInterface Implementation End
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
