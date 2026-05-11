@@ -2,10 +2,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstance.h"
 
-// Sets default values
 ANGInteractableActor::ANGInteractableActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	InteractMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("InteractMesh"));
 	RootComponent = InteractMesh;
@@ -13,30 +11,30 @@ ANGInteractableActor::ANGInteractableActor()
 	bIsInteractable = true;
 }
 
-
-
-void ANGInteractableActor::Interact_Implementation(AActor* InteractingActor)
-{
-	if (!bIsInteractable) return;
-
-	// Base implementation can be empty or log something
-}
-
 bool ANGInteractableActor::IsReadyToInteract_Implementation()
 {
-	// Side-effect: apply the "ready" overlay material when the proximity system
-	// notifies us we're the current candidate. SelectedToInteract is called
-	// right after by the component and will overwrite this with the stronger
-	// "selected" material, so InteractReadyMaterial is mostly useful for
-	// subclasses that override SelectedToInteract to do something else.
+	// Pure query — no side effects. Override to return false when the actor
+	// is in a state that should refuse interaction (damaged, locked, busy).
+	return bIsInteractable;
+}
+
+void ANGInteractableActor::OnEnteredInteractRange_Implementation(AActor* /*Interactor*/)
+{
 	if (InteractMesh && InteractReadyMaterial)
 	{
 		InteractMesh->SetOverlayMaterial(InteractReadyMaterial);
 	}
-	return bIsInteractable;
 }
 
-void ANGInteractableActor::SelectedToInteract_Implementation()
+void ANGInteractableActor::OnExitedInteractRange_Implementation(AActor* /*Interactor*/)
+{
+	if (InteractMesh)
+	{
+		InteractMesh->SetOverlayMaterial(nullptr);
+	}
+}
+
+void ANGInteractableActor::OnSelectedForInteract_Implementation(AActor* /*Interactor*/)
 {
 	if (InteractMesh && InteractSelectedMaterial)
 	{
@@ -44,10 +42,16 @@ void ANGInteractableActor::SelectedToInteract_Implementation()
 	}
 }
 
-void ANGInteractableActor::NotReadyToInteract_Implementation()
+void ANGInteractableActor::OnDeselectedForInteract_Implementation(AActor* /*Interactor*/)
 {
-	if (InteractMesh)
+	// Revert to the "in range but not the focus" appearance.
+	if (InteractMesh && InteractReadyMaterial)
 	{
-		InteractMesh->SetOverlayMaterial(nullptr);
+		InteractMesh->SetOverlayMaterial(InteractReadyMaterial);
 	}
+}
+
+void ANGInteractableActor::Interact_Implementation(AActor* /*InteractingActor*/)
+{
+	// Base implementation is empty — override to do something interesting.
 }

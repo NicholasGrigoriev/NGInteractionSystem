@@ -56,6 +56,8 @@ bool UNGCharacterInteractComponent::TryInteract_Implementation()
 	return false;
 }
 
+
+
 UObject* UNGCharacterInteractComponent::GetCurrentInteractable_Implementation()
 {
 	return CurrentInteractable.GetObject();
@@ -85,50 +87,66 @@ void UNGCharacterInteractComponent::OnInteractionShapeBeginOverlap(UPrimitiveCom
 {
 	if (OtherActor && OtherActor != GetOwner() && OtherActor->Implements<UNGInteractionInterface>())
 	{
+		const int32 PrevCount = OverlappingInteractables.Num();
 		OverlappingInteractables.AddUnique(OtherActor);
+		// AddUnique returns the index, not a "was-it-new" flag — derive newness
+		// from count growth so we only fire the event on a real first entry.
+		if (OverlappingInteractables.Num() > PrevCount)
+		{
+			INGInteractionInterface::Execute_OnEnteredInteractRange(OtherActor, GetOwner());
+		}
 	}
 }
 
 void UNGCharacterInteractComponent::OnInteractionShapeEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor)
+	if (!OtherActor)
 	{
-		OverlappingInteractables.Remove(OtherActor);
-		
-		// If the leaving actor was the current interactable, clear it
-		if (CurrentInteractable.GetObject() == OtherActor)
-		{
-			INGInteractionInterface::Execute_NotReadyToInteract(CurrentInteractable.GetObject());
-			CurrentInteractable = nullptr;
-		}
+		return;
+	}
+
+	const int32 Removed = OverlappingInteractables.Remove(OtherActor);
+	if (Removed > 0 && OtherActor->Implements<UNGInteractionInterface>())
+	{
+		INGInteractionInterface::Execute_OnExitedInteractRange(OtherActor, GetOwner());
+	}
+
+	if (CurrentInteractable.GetObject() == OtherActor)
+	{
+		// OnExitedInteractRange already cleared the visual state; just clear
+		// the bookkeeping pointer here.
+		CurrentInteractable = nullptr;
 	}
 }
 
 void UNGCharacterInteractComponent::UpdateCurrentInteractable()
 {
 	AActor* BestActor = GetBestInteractableActor();
+	UObject* PrevObject = CurrentInteractable.GetObject();
 
-	if (BestActor != CurrentInteractable.GetObject())
+	if (BestActor == PrevObject)
 	{
-		// Notify old interactable
-		if (CurrentInteractable)
-		{
-			INGInteractionInterface::Execute_NotReadyToInteract(CurrentInteractable.GetObject());
-		}
+		return;
+	}
 
-		CurrentInteractable = BestActor;
-
-		// Notify new interactable. IsReadyToInteract is the "you're now the
-		// candidate" event (applies the ready material in the base class);
-		// SelectedToInteract is fired right after as the "you're the best
-		// match" event (applies the selected material, overwriting ready).
-		// Subclasses can override either independently if they want distinct
-		// behavior for the two states.
-		if (CurrentInteractable)
+	// Demote previous best back to "ready" if it is still in range. If the
+	// previous best left range entirely, OnExitedInteractRange already fired
+	// from the overlap-end handler and cleared its visuals — don't double-fire.
+	if (PrevObject)
+	{
+		AActor* PrevActor = Cast<AActor>(PrevObject);
+		if (PrevActor && OverlappingInteractables.Contains(PrevActor)
+			&& PrevActor->Implements<UNGInteractionInterface>())
 		{
-			INGInteractionInterface::Execute_IsReadyToInteract(CurrentInteractable.GetObject());
-			INGInteractionInterface::Execute_SelectedToInteract(CurrentInteractable.GetObject());
+			INGInteractionInterface::Execute_OnDeselectedForInteract(PrevActor, GetOwner());
 		}
+	}
+
+	CurrentInteractable = BestActor;
+
+	if (BestActor)
+	{
+		INGInteractionInterface::Execute_OnSelectedForInteract(BestActor, GetOwner());
 	}
 }
 
