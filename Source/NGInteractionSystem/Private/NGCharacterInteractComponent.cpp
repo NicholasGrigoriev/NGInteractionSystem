@@ -87,14 +87,11 @@ void UNGCharacterInteractComponent::OnInteractionShapeBeginOverlap(UPrimitiveCom
 {
 	if (OtherActor && OtherActor != GetOwner() && OtherActor->Implements<UNGInteractionInterface>())
 	{
-		const int32 PrevCount = OverlappingInteractables.Num();
+		// Physical overlap is necessary but not sufficient — readiness drives
+		// the visual chain. SyncReadyInteractables (called from the next tick)
+		// will promote this actor and fire OnEnteredInteractRange only if its
+		// IsReadyToInteract currently returns true.
 		OverlappingInteractables.AddUnique(OtherActor);
-		// AddUnique returns the index, not a "was-it-new" flag — derive newness
-		// from count growth so we only fire the event on a real first entry.
-		if (OverlappingInteractables.Num() > PrevCount)
-		{
-			INGInteractionInterface::Execute_OnEnteredInteractRange(OtherActor, GetOwner());
-		}
 	}
 }
 
@@ -105,22 +102,36 @@ void UNGCharacterInteractComponent::OnInteractionShapeEndOverlap(UPrimitiveCompo
 		return;
 	}
 
-	const int32 Removed = OverlappingInteractables.Remove(OtherActor);
-	if (Removed > 0 && OtherActor->Implements<UNGInteractionInterface>())
+	OverlappingInteractables.Remove(OtherActor);
+
+	// Only fire Exit if the actor was actually in the ready set — actors that
+	// were overlapping but never ready never showed an overlay, so there's
+	// nothing to tear down. Mirror Sync's "demote then exit" order so the
+	// material chain reverts cleanly.
+	const bool bWasReady = ReadyInteractables.Remove(OtherActor) > 0;
+	if (bWasReady && OtherActor->Implements<UNGInteractionInterface>())
 	{
+		if (CurrentInteractable.GetObject() == OtherActor)
+		{
+			INGInteractionInterface::Execute_OnDeselectedForInteract(OtherActor, GetOwner());
+			CurrentInteractable = nullptr;
+		}
 		INGInteractionInterface::Execute_OnExitedInteractRange(OtherActor, GetOwner());
 	}
-
-	if (CurrentInteractable.GetObject() == OtherActor)
+	else if (CurrentInteractable.GetObject() == OtherActor)
 	{
-		// OnExitedInteractRange already cleared the visual state; just clear
-		// the bookkeeping pointer here.
 		CurrentInteractable = nullptr;
 	}
 }
 
 void UNGCharacterInteractComponent::UpdateCurrentInteractable()
 {
+	// Reconcile readiness before picking — an actor whose IsReadyToInteract
+	// has flipped since last tick (e.g. a panel just became occupied) will be
+	// promoted/demoted here, firing the appropriate Enter/Exit events so the
+	// overlay material chain tracks runtime state rather than raw collision.
+	SyncReadyInteractables();
+
 	AActor* BestActor = GetBestInteractableActor();
 	UObject* PrevObject = CurrentInteractable.GetObject();
 
@@ -129,13 +140,13 @@ void UNGCharacterInteractComponent::UpdateCurrentInteractable()
 		return;
 	}
 
-	// Demote previous best back to "ready" if it is still in range. If the
-	// previous best left range entirely, OnExitedInteractRange already fired
-	// from the overlap-end handler and cleared its visuals — don't double-fire.
+	// Demote previous best back to "ready" if it is still ready. Sync already
+	// handled the not-ready transition (deselect + exit), so here we only need
+	// to deselect actors that are still in the ready set but no longer best.
 	if (PrevObject)
 	{
 		AActor* PrevActor = Cast<AActor>(PrevObject);
-		if (PrevActor && OverlappingInteractables.Contains(PrevActor)
+		if (PrevActor && ReadyInteractables.Contains(PrevActor)
 			&& PrevActor->Implements<UNGInteractionInterface>())
 		{
 			INGInteractionInterface::Execute_OnDeselectedForInteract(PrevActor, GetOwner());
@@ -150,9 +161,53 @@ void UNGCharacterInteractComponent::UpdateCurrentInteractable()
 	}
 }
 
+void UNGCharacterInteractComponent::SyncReadyInteractables()
+{
+	// First pass: drop actors that have left overlap or flipped to not-ready.
+	// Walking backwards lets us RemoveAt in place.
+	for (int32 i = ReadyInteractables.Num() - 1; i >= 0; --i)
+	{
+		AActor* Actor = ReadyInteractables[i];
+		const bool bStillOverlapping = Actor && OverlappingInteractables.Contains(Actor);
+		const bool bStillReady = bStillOverlapping
+			&& Actor->Implements<UNGInteractionInterface>()
+			&& INGInteractionInterface::Execute_IsReadyToInteract(Actor);
+
+		if (!bStillReady)
+		{
+			if (Actor && Actor->Implements<UNGInteractionInterface>())
+			{
+				// Deselect first if this was the current pick, so the overlay
+				// chain reverts selected → in-range → cleared (not selected
+				// → cleared → in-range, which leaves a stuck overlay).
+				if (CurrentInteractable.GetObject() == Actor)
+				{
+					INGInteractionInterface::Execute_OnDeselectedForInteract(Actor, GetOwner());
+					CurrentInteractable = nullptr;
+				}
+				INGInteractionInterface::Execute_OnExitedInteractRange(Actor, GetOwner());
+			}
+			ReadyInteractables.RemoveAt(i);
+		}
+	}
+
+	// Second pass: promote overlapping actors that have flipped to ready.
+	for (AActor* Actor : OverlappingInteractables)
+	{
+		if (!Actor || ReadyInteractables.Contains(Actor)) continue;
+		if (!Actor->Implements<UNGInteractionInterface>()) continue;
+
+		if (INGInteractionInterface::Execute_IsReadyToInteract(Actor))
+		{
+			ReadyInteractables.Add(Actor);
+			INGInteractionInterface::Execute_OnEnteredInteractRange(Actor, GetOwner());
+		}
+	}
+}
+
 AActor* UNGCharacterInteractComponent::GetBestInteractableActor()
 {
-	if (OverlappingInteractables.Num() == 0)
+	if (ReadyInteractables.Num() == 0)
 	{
 		return nullptr;
 	}
@@ -176,7 +231,7 @@ AActor* UNGCharacterInteractComponent::GetBestInteractableActor()
 		CameraForward = GetOwner()->GetActorForwardVector();
 	}
 
-	for (AActor* Actor : OverlappingInteractables)
+	for (AActor* Actor : ReadyInteractables)
 	{
 		if (!Actor) continue;
 

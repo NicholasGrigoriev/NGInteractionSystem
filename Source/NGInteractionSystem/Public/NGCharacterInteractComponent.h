@@ -64,7 +64,28 @@ protected:
 	void UpdateCurrentInteractable();
 	AActor* GetBestInteractableActor();
 
+	/**
+	 * Reconcile ReadyInteractables against OverlappingInteractables by polling
+	 * IsReadyToInteract on each candidate. Fires OnEnteredInteractRange when an
+	 * overlapping actor transitions to ready, and OnExitedInteractRange (plus
+	 * OnDeselectedForInteract first, if it was the current selection) when it
+	 * transitions back to not-ready. This is how the overlay material chain
+	 * stays in sync with runtime readiness — physical overlap alone is not
+	 * enough, since an actor's IsReadyToInteract can flip while it stays in
+	 * the zone (e.g. a control panel becoming occupied mid-overlap).
+	 */
+	void SyncReadyInteractables();
+
 private:
+	/** All actors physically overlapping the interaction shape, ready or not. */
 	TArray<AActor*> OverlappingInteractables;
+
+	/**
+	 * Subset of OverlappingInteractables whose IsReadyToInteract last returned
+	 * true. The picker iterates this list, and Enter/Exit events fire when
+	 * membership changes.
+	 */
+	TArray<AActor*> ReadyInteractables;
+
 	float TimeSinceLastUpdate = 0.0f;
 };
