@@ -180,12 +180,16 @@ AActor* UNGCharacterInteractComponent::GetBestInteractableActor()
 	{
 		if (!Actor) continue;
 
-		FVector DirectionToActor = (Actor->GetActorLocation() - CameraLocation).GetSafeNormal();
+		// Ask the interactable where its hit-zone is in world space — defaults
+		// to GetActorLocation(), but subclasses can override (e.g. control
+		// panels whose interact zone is offset from the actor origin).
+		const FVector TargetLocation = INGInteractionInterface::Execute_GetInteractWorldLocation(Actor);
+		FVector DirectionToActor = (TargetLocation - CameraLocation).GetSafeNormal();
 		float DotProduct = FVector::DotProduct(CameraForward, DirectionToActor);
 
 		// Check if within angle threshold
 		float Angle = FMath::RadiansToDegrees(FMath::Acos(DotProduct));
-		
+
 		if (Angle <= InteractAngleThreshold)
 		{
 			if (DotProduct > BestDotProduct)

@@ -50,6 +50,20 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
 	bool IsReadyToInteract();
 
+	/**
+	 * World-space location the look-at picker should aim at when deciding
+	 * which overlapping interactable is the "best candidate" — the one the
+	 * player is currently looking at.
+	 *
+	 * Default impl returns GetActorLocation() for backwards compatibility.
+	 * Override on actors whose interaction hit-zone is offset from the actor
+	 * origin: ANGInteractableActor returns InteractMesh->GetComponentLocation()
+	 * so a control panel's interact zone (typically a chair / seat region
+	 * offset from the panel mesh's origin) gets aimed at correctly.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
+	FVector GetInteractWorldLocation();
+
 	/** Fired by the interactor's component when this actor enters the proximity zone. */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction|Proximity")
 	void OnEnteredInteractRange(AActor* Interactor);

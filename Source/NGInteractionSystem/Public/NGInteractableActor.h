@@ -30,6 +30,7 @@ public:
 
 	// INGInteractionInterface
 	virtual bool IsReadyToInteract_Implementation() override;
+	virtual FVector GetInteractWorldLocation_Implementation() override;
 	virtual void OnEnteredInteractRange_Implementation(AActor* Interactor) override;
 	virtual void OnExitedInteractRange_Implementation(AActor* Interactor) override;
 	virtual void OnSelectedForInteract_Implementation(AActor* Interactor) override;
